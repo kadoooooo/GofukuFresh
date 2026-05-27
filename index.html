@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GofukuFreshTennis_portal</title>
+  <title>五福フレッシュテニスクラブ ポータル</title>
   <style>
     /* --- 全体設定 --- */
     * {
@@ -495,11 +495,12 @@
         </div>
       </div>
       <nav class="sidebar-menu">
-        <button class="menu-item active" data-tab="announcements">
-          <span class="icon">📢</span> お知らせ
-        </button>
-        <button class="menu-item" data-tab="schedules">
+        <!-- 【変更】練習スケジュールを先頭に配置し、初期アクティブ化 -->
+        <button class="menu-item active" data-tab="schedules">
           <span class="icon">📅</span> 練習スケジュール
+        </button>
+        <button class="menu-item" data-tab="announcements">
+          <span class="icon">📢</span> お知らせ
         </button>
       </nav>
       <div class="sidebar-footer">
@@ -513,23 +514,26 @@
 
     <main class="main-content">
       <header class="main-header">
-        <h1 id="page-title">お知らせ</h1>
+        <!-- 【変更】初期タイトルを練習スケジュールに変更 -->
+        <h1 id="page-title">練習スケジュール</h1>
         <div id="mode-indicator" class="demo-banner" style="display:none;">⚠️ デモモード駆動中</div>
       </header>
 
       <div class="content-body">
-        <section id="tab-announcements" class="tab-content active">
-          <div class="action-bar admin-only">
-            <button class="btn btn-primary" id="add-announcement-btn">➕ 新規お知らせ投稿</button>
-          </div>
-          <div class="announcement-list" id="announcement-container"></div>
-        </section>
-
-        <section id="tab-schedules" class="tab-content">
+        <!-- 【変更】練習スケジュールを初期アクティブ(activeクラス付与)に変更 -->
+        <section id="tab-schedules" class="tab-content active">
           <div class="action-bar admin-only">
             <button class="btn btn-primary" id="add-schedule-btn">➕ 新規スケジュール追加</button>
           </div>
           <div class="schedule-list" id="schedule-container"></div>
+        </section>
+
+        <!-- 【変更】お知らせは初期非表示(activeクラス除去)に変更 -->
+        <section id="tab-announcements" class="tab-content">
+          <div class="action-bar admin-only">
+            <button class="btn btn-primary" id="add-announcement-btn">➕ 新規お知らせ投稿</button>
+          </div>
+          <div class="announcement-list" id="announcement-container"></div>
         </section>
       </div>
     </main>
@@ -551,17 +555,14 @@
     const isDemoMode = firebaseConfig.apiKey === "YOUR_API_KEY";
     let db, auth;
 
-    // ダミーのデフォルトデータ定義（定義漏れ防止）
     const defaultAnnouncements = [];
     const defaultSchedules = [];
 
-    // 接続時に名前が空白にならないよう、初期設定を割り当て
     let currentUser = { uid: "real-user-123", name: "一般ユーザー", role: "member" };
 
     let demoAnnouncements = JSON.parse(localStorage.getItem("ft_demo_announcements")) || defaultAnnouncements;
     let demoSchedules = JSON.parse(localStorage.getItem("ft_demo_schedules")) || defaultSchedules;
 
-    // 初期起動ロジック
     document.addEventListener("DOMContentLoaded", async () => {
       setupTabSystem();
       setupAdminAuthTrigger();
@@ -589,8 +590,7 @@
         document.getElementById("mode-indicator").style.display = "block";
         currentUser.name = "デモユーザー";
       } else {
-        // 本番環境でも停止しないよう固定ユーザーを割り当て ここでバッジの上の名称を出している。
-        currentUser = { uid: "real-user-123", name: "", role: "member" };
+        currentUser = { uid: "real-user-123", name: "テニス会員", role: "member" };
       }
       renderUI(currentUser);
     }
@@ -604,8 +604,7 @@
           const inputPassword = prompt("管理者のパスワードを入力してください:");
           if (inputPassword === ADMIN_PASSWORD) {
             currentUser.role = "admin";
-            // ここでバッジの上の名称を出している。
-            currentUser.name = "";
+            currentUser.name = "テスト管理者";
             alert("認証に成功しました。管理者権限を付与します。");
             renderUI(currentUser);
           } else if (inputPassword !== null) {
@@ -876,7 +875,6 @@
           container.appendChild(card);
         });
 
-        // 出欠登録処理
         container.querySelectorAll(".submit-att-btn").forEach(btn => {
           btn.addEventListener("click", (e) => {
             const id = e.target.getAttribute("data-id");
@@ -922,16 +920,11 @@
         });
       }
 
-      // ==========================================
-      // 【対策箇所】新規スケジュール追加ボタンの重複登録を排除
-      // ==========================================
       const addScheduleBtn = document.getElementById("add-schedule-btn");
       if (addScheduleBtn) {
-        // 古いイベントリスナーごと要素を複製して置き換える（完全リセット）
         const newAddScheduleBtn = addScheduleBtn.cloneNode(true);
         addScheduleBtn.parentNode.replaceChild(newAddScheduleBtn, addScheduleBtn);
 
-        // 新しいクリーンなボタンに、1回だけイベントを付与する
         newAddScheduleBtn.addEventListener("click", async () => {
           const title = prompt("練習名を入力してください（例: 週末定期練習会）:");
           if (!title || title.trim() === "") { alert("エラー: 練習名を入力してください。"); return; }
@@ -979,7 +972,7 @@
             try {
               const { collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
               await addDoc(collection(db, "schedules"), newScheduleData);
-              alert("スケジュールを追加しました");
+              alert("スケジュールを本番環境に追加しました");
               loadSchedules();
             } catch (error) {
               console.error("スケジュール追加エラー:", error);
@@ -990,7 +983,6 @@
       }
     }
 
-    // --- 出欠登録共通処理 ---
     async function registerAttendance(scheduleId, uid, name, status, comment, type) {
       if (isDemoMode) {
         const schedule = demoSchedules.find(s => s.id === scheduleId);
@@ -1017,7 +1009,6 @@
       }
     }
 
-    // お知らせ追加・編集機能
     async function editAnnouncement(id) {
       let currentTitle = "", currentContent = "";
       const titleEl = document.getElementById(`title-text-${id}`);
@@ -1063,7 +1054,6 @@
       }
     }
 
-    // スケジュール編集機能 (未完部分の補完)
     async function editSchedule(id) {
       const item = window.schedulesData.find(s => s.id === id);
       if (!item) return;
@@ -1110,7 +1100,7 @@
         try {
           const { doc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
           await updateDoc(doc(db, "schedules", id), updatedData);
-          alert("スケジュールを更新しました");
+          alert("スケジュールを本番環境で更新しました");
           loadSchedules();
         } catch (e) {
           console.error("更新エラー:", e);
@@ -1119,7 +1109,6 @@
       }
     }
 
-    // スケジュール削除機能
     async function deleteSchedule(id) {
       if (!confirm("本当にこのスケジュールを削除しますか？")) return;
       if (isDemoMode) {
